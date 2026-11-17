@@ -1,0 +1,513 @@
+openapi: 3.0.3
+info:
+  title: Test Case Assistant API
+  version: 1.0.0
+  description: API for importing, analyzing, and improving Azure DevOps test cases with AI.
+servers:
+  - url: https://testcaseassistant.internal/api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Import
+  - name: Generation
+  - name: Duplicates
+  - name: Quality
+  - name: Coverage
+  - name: Cleanup
+  - name: Reports
+paths:
+  /import/jobs:
+    post:
+      tags: [Import]
+      summary: Create an Azure DevOps import job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateImportJobRequest'
+      responses:
+        '202':
+          description: Import job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+  /import/jobs/{jobId}:
+    get:
+      tags: [Import]
+      summary: Get import job status
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Import job details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportJobDetails'
+  /testcases:
+    get:
+      tags: [Import]
+      summary: List test cases
+      parameters:
+        - in: query
+          name: workspaceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 25
+      responses:
+        '200':
+          description: Paged list of test cases
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTestCasesResponse'
+  /generation/steps:
+    post:
+      tags: [Generation]
+      summary: Generate test steps from description
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateStepsRequest'
+      responses:
+        '200':
+          description: Generated steps
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratedStepsResponse'
+  /generation/expected-results:
+    post:
+      tags: [Generation]
+      summary: Generate expected results from test steps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateExpectedResultsRequest'
+      responses:
+        '200':
+          description: Generated expected results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratedExpectedResultsResponse'
+  /duplicates/analyze:
+    post:
+      tags: [Duplicates]
+      summary: Start duplicate analysis run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DuplicateAnalysisRequest'
+      responses:
+        '202':
+          description: Analysis started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+  /duplicates/groups:
+    get:
+      tags: [Duplicates]
+      summary: Fetch duplicate groups
+      parameters:
+        - in: query
+          name: runId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Duplicate groups
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DuplicateGroupsResponse'
+  /quality/analyze:
+    post:
+      tags: [Quality]
+      summary: Start quality analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QualityAnalysisRequest'
+      responses:
+        '202':
+          description: Analysis started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+  /quality/results/{analysisId}:
+    get:
+      tags: [Quality]
+      summary: Get quality analysis results
+      parameters:
+        - in: path
+          name: analysisId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Quality results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityResultsResponse'
+  /coverage/analyze:
+    post:
+      tags: [Coverage]
+      summary: Start coverage gap analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CoverageAnalysisRequest'
+      responses:
+        '202':
+          description: Coverage analysis started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+  /cleanup/jobs:
+    post:
+      tags: [Cleanup]
+      summary: Create cleanup job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCleanupJobRequest'
+      responses:
+        '202':
+          description: Cleanup job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAcceptedResponse'
+  /cleanup/jobs/{jobId}/approve:
+    post:
+      tags: [Cleanup]
+      summary: Approve cleanup job
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+  /reports/dashboard:
+    get:
+      tags: [Reports]
+      summary: Get dashboard metrics
+      parameters:
+        - in: query
+          name: workspaceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Dashboard report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardReportResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    JobId:
+      in: path
+      name: jobId
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    JobAcceptedResponse:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: Accepted
+    OperationResult:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+    CreateImportJobRequest:
+      type: object
+      required: [workspaceId, azureProjectId]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        azureProjectId:
+          type: string
+        testPlanId:
+          type: integer
+        testSuiteId:
+          type: integer
+    ImportJobDetails:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        importedCount:
+          type: integer
+        failedCount:
+          type: integer
+    TestCaseSummary:
+      type: object
+      properties:
+        testCaseId:
+          type: string
+          format: uuid
+        externalId:
+          type: string
+        title:
+          type: string
+        qualityScore:
+          type: number
+          format: float
+    PagedTestCasesResponse:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestCaseSummary'
+    GenerateStepsRequest:
+      type: object
+      required: [workspaceId, testCaseId, description]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        testCaseId:
+          type: string
+          format: uuid
+        description:
+          type: string
+    GeneratedStep:
+      type: object
+      properties:
+        order:
+          type: integer
+        action:
+          type: string
+    GeneratedStepsResponse:
+      type: object
+      properties:
+        testCaseId:
+          type: string
+          format: uuid
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeneratedStep'
+        confidence:
+          type: number
+          format: float
+    GenerateExpectedResultsRequest:
+      type: object
+      required: [workspaceId, testCaseId, steps]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        testCaseId:
+          type: string
+          format: uuid
+        steps:
+          type: array
+          items:
+            type: string
+    GeneratedExpectedResultsResponse:
+      type: object
+      properties:
+        testCaseId:
+          type: string
+          format: uuid
+        expectedResults:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: number
+          format: float
+    DuplicateAnalysisRequest:
+      type: object
+      required: [workspaceId]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        similarityThreshold:
+          type: number
+          format: float
+          default: 0.85
+    DuplicateGroup:
+      type: object
+      properties:
+        groupId:
+          type: string
+          format: uuid
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestCaseSummary'
+        maxSimilarityScore:
+          type: number
+          format: float
+    DuplicateGroupsResponse:
+      type: object
+      properties:
+        runId:
+          type: string
+          format: uuid
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/DuplicateGroup'
+    QualityAnalysisRequest:
+      type: object
+      required: [workspaceId]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        testCaseIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    QualityFinding:
+      type: object
+      properties:
+        ruleId:
+          type: string
+        severity:
+          type: string
+          enum: [Low, Medium, High]
+        message:
+          type: string
+        suggestedFix:
+          type: string
+    QualityResult:
+      type: object
+      properties:
+        testCaseId:
+          type: string
+          format: uuid
+        overallScore:
+          type: number
+          format: float
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/QualityFinding'
+    QualityResultsResponse:
+      type: object
+      properties:
+        analysisId:
+          type: string
+          format: uuid
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/QualityResult'
+    CoverageAnalysisRequest:
+      type: object
+      required: [workspaceId]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        requirementSource:
+          type: string
+          enum: [UserStories, BRD, Backlog]
+    CreateCleanupJobRequest:
+      type: object
+      required: [workspaceId, action]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [NormalizeTitles, RemoveDuplicates, RegenerateExpectedResults]
+        targetTestCaseIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    DashboardReportResponse:
+      type: object
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        totalTestCases:
+          type: integer
+        averageQualityScore:
+          type: number
+          format: float
+        duplicateRate:
+          type: number
+          format: float
+        uncoveredRequirementCount:
+          type: integer

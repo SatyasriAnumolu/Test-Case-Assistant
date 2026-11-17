@@ -1,0 +1,13 @@
+**/node_modules/
+**/dist/
+**/bin/
+**/obj/
+**/.env
+**/.env.*
+!**/.env.example
+**/appsettings.Development.json
+/.vscode/
+.playwright-mcp/
+*.log
+*.tar.gz
+*.tsbuildinfo

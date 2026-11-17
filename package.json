@@ -1,0 +1,10 @@
+{
+  "name": "test-case-assistant-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix test-case-assistant run dev --",
+    "build": "npm --prefix test-case-assistant run build",
+    "lint": "npm --prefix test-case-assistant run lint",
+    "preview": "npm --prefix test-case-assistant run preview"
+  }
+}
